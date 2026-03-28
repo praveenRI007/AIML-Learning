@@ -6,7 +6,7 @@ from diffusers import StableDiffusionXLPipeline
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Path where you want to save/load the model
-local_model_path = "./my_sdxl_model"
+local_model_path = "../my_sdxl_model"
 model_id = "stabilityai/stable-diffusion-xl-base-1.0"
 
 # Check if model exists locally
