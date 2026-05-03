@@ -1,0 +1,2372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ATS Friendly - Resume Builder · Tech / Software Engineering </title>
+
+<!-- Bootstrap 5 -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+<!-- Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+<!-- Fonts for the resume -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --ink: #202020;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --bg: #f5f5f4;
+
+    /* A4 page geometry — tightened for one-page fit */
+    --page-w: 210mm;
+    --page-h: 297mm;
+    --page-pad-y: 8mm;
+    --page-pad-x: 12mm;
+  }
+  body {
+    font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .app-shell { display: flex; flex-direction: column; height: 100vh; }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: .65rem 1.25rem;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar .brand { display: flex; align-items: center; gap: .65rem; }
+  .topbar .brand-icon {
+    width: 34px; height: 34px; border-radius: 6px;
+    background: #111827; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+  .topbar .brand-title { font-weight: 600; font-size: .95rem; line-height: 1; }
+  .topbar .brand-sub { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+  .page-counter {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .35rem .6rem;
+    background: #f3f4f6; color: #4b5563;
+    border-radius: 5px; font-size: .75rem; font-weight: 500;
+  }
+
+  /* ATS score pill in topbar — clickable to expand panel */
+  .ats-pill {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .35rem .6rem;
+    background: #eef2ff; color: #3730a3;
+    border-radius: 5px; font-size: .75rem; font-weight: 600;
+    border: 1px solid #c7d2fe;
+    cursor: pointer;
+    transition: background .12s ease;
+    position: relative;
+  }
+  .ats-pill:hover { background: #e0e7ff; }
+  .ats-pill.tier-low  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+  .ats-pill.tier-low:hover { background: #fee2e2; }
+  .ats-pill.tier-mid  { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+  .ats-pill.tier-mid:hover { background: #fef3c7; }
+  .ats-pill.tier-high { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+  .ats-pill.tier-high:hover { background: #d1fae5; }
+  .ats-pill .ats-num { font-variant-numeric: tabular-nums; }
+
+  .ats-panel {
+    position: absolute; top: 100%; right: 0; margin-top: 6px;
+    width: 380px; max-height: 70vh; overflow-y: auto;
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.12);
+    padding: 1rem; z-index: 1000;
+    text-align: left; font-size: .8rem; font-weight: 400; color: #374151;
+  }
+  .ats-panel[hidden] { display: none; }
+  .ats-panel h4 {
+    font-size: .72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: #111; margin: 0 0 .4rem 0;
+  }
+  .ats-panel .ats-summary {
+    display: flex; align-items: baseline; gap: .5rem;
+    padding-bottom: .65rem; margin-bottom: .65rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .ats-panel .ats-summary .big {
+    font-size: 1.6rem; font-weight: 700; color: #111;
+    font-variant-numeric: tabular-nums;
+  }
+  .ats-panel .ats-summary .small { color: #6b7280; font-size: .75rem; }
+  .ats-chip-row { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .8rem; }
+  .ats-chip {
+    display: inline-flex; align-items: center; gap: .25rem;
+    padding: .15rem .45rem;
+    border-radius: 3px;
+    font-size: .72rem; font-weight: 500;
+    background: #f3f4f6; color: #374151;
+    border: 1px solid #e5e7eb;
+  }
+  .ats-chip.matched { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+  .ats-chip.missing { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+  .ats-chip.must::before {
+    content: "★"; color: #b45309; font-size: .7rem;
+  }
+  /* Remove-from-list button on each chip. Subtle until hover. */
+  .ats-chip-x {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    opacity: .55;
+    font-size: .95rem;
+    line-height: 1;
+    padding: 0 0 0 .15rem;
+    margin-left: .1rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: opacity .12s ease, background .12s ease, color .12s ease;
+  }
+  .ats-chip-x:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, .12);
+    color: #111;
+  }
+  .ats-chip-x:focus-visible {
+    outline: 2px solid #6366f1; outline-offset: 1px;
+  }
+  .ats-empty {
+    color: #9ca3af; font-size: .75rem; font-style: italic;
+    padding: .4rem 0;
+  }
+  .ats-actions {
+    display: flex; gap: .4rem;
+    padding-top: .65rem; margin-top: .4rem;
+    border-top: 1px solid var(--line);
+  }
+  .ats-btn {
+    flex: 1;
+    padding: .45rem .6rem;
+    background: #111827; color: #fff; border: 0;
+    border-radius: 5px;
+    font-size: .75rem; font-weight: 500;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: .3rem;
+    transition: background .12s ease;
+  }
+  .ats-btn:hover:not(:disabled) { background: #1f2937; }
+  .ats-btn:disabled { background: #d4d4d8; cursor: not-allowed; }
+  .ats-btn.secondary {
+    background: #f3f4f6; color: #374151;
+  }
+  .ats-btn.secondary:hover:not(:disabled) { background: #e5e7eb; color: #111; }
+
+  /* Original / ATS Friendly toggle in topbar */
+  .version-toggle {
+    display: inline-flex;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    overflow: hidden;
+    background: #f9fafb;
+  }
+  .version-toggle[hidden] { display: none; }
+  .vt-btn {
+    appearance: none;
+    border: 0; background: transparent;
+    padding: .35rem .65rem;
+    font-size: .75rem; font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: .3rem;
+    transition: background .12s ease, color .12s ease;
+  }
+  .vt-btn:hover:not(.active):not(:disabled) { background: #f3f4f6; color: #111; }
+  .vt-btn.active {
+    background: #111827; color: #fff; cursor: default;
+  }
+  .vt-btn:disabled { color: #d4d4d8; cursor: not-allowed; }
+  .vt-btn + .vt-btn { border-left: 1px solid #d1d5db; }
+  .vt-btn.active + .vt-btn,
+  .vt-btn:has(+ .vt-btn.active) { border-left-color: transparent; }
+
+  /* Original vs Tailored summary inside the panel */
+  .ats-versus {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: .4rem;
+    padding: .55rem .65rem;
+    background: #f9fafb; border: 1px solid var(--line); border-radius: 6px;
+    margin-bottom: .8rem;
+  }
+  .ats-versus[hidden] { display: none; }
+  .vs-side { flex: 1; text-align: center; }
+  .vs-label {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .04em;
+    color: #6b7280; font-weight: 600; margin-bottom: 1px;
+  }
+  .vs-num {
+    font-size: 1.05rem; font-weight: 700; color: #111;
+    font-variant-numeric: tabular-nums;
+  }
+  .vs-arrow { color: #9ca3af; font-size: .85rem; padding: 0 .2rem; }
+  .vs-side.improved .vs-num { color: #047857; }
+  .vs-side.regressed .vs-num { color: #b45309; }
+
+  /* Yellow highlight for AI-inserted JD keywords. Stripped on print. */
+  .resume-page mark.kw-added,
+  .measure-host mark.kw-added {
+    background: #fef3c7;
+    color: inherit;
+    padding: 0 1px;
+    border-radius: 2px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+
+  .main-split { flex: 1; display: flex; overflow: hidden; }
+
+  /* EDITOR */
+  .editor-pane {
+    width: 42%;
+    background: #fff;
+    border-right: 1px solid var(--line);
+    display: flex; flex-direction: column;
+  }
+  .editor-banner {
+    padding: .55rem 1.1rem;
+    background: linear-gradient(to bottom, #fafaf9, #fff);
+    border-bottom: 1px solid var(--line);
+    font-size: .75rem; color: var(--muted);
+  }
+  .editor-scroll { flex: 1; overflow-y: auto; }
+
+  .accordion-button {
+    font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+    color: #111 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    padding: .9rem 1.1rem;
+  }
+  .accordion-button::after { transform: scale(.85); }
+  .accordion-button:not(.collapsed) { background: #fafaf9 !important; }
+  .accordion-item { border: 0; border-bottom: 1px solid var(--line); border-radius: 0 !important; }
+  .accordion-body { padding: .25rem 1.1rem 1.25rem; background: #fff; }
+
+  .section-icon {
+    width: 26px; height: 26px; border-radius: 5px;
+    background: #f3f4f6; color: #4b5563;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-right: .65rem;
+    font-size: .85rem;
+  }
+  .accordion-button:not(.collapsed) .section-icon { background: #111827; color: #fff; }
+
+  .form-label-sm {
+    font-size: .68rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em;
+    color: #4b5563; margin-bottom: .3rem;
+  }
+  .form-control, .form-control:focus {
+    font-size: .88rem;
+    background: #fafaf9;
+    border-color: var(--line);
+    border-radius: 6px;
+  }
+  .form-control:focus { background: #fff; border-color: #111; box-shadow: none; }
+
+  .sub-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: .9rem;
+    margin-bottom: .75rem;
+    position: relative;
+  }
+  .sub-card:hover { border-color: #d4d4d8; }
+  .btn-remove {
+    position: absolute; top: .5rem; right: .5rem;
+    border: 0; background: transparent;
+    color: #9ca3af; padding: .25rem .4rem; border-radius: 4px;
+  }
+  .btn-remove:hover { background: #fee2e2; color: #dc2626; }
+
+  .btn-add-section {
+    width: 100%;
+    padding: .55rem;
+    border: 1px dashed #d4d4d8;
+    background: #fafaf9;
+    color: #374151;
+    font-size: .82rem; font-weight: 500;
+    border-radius: 6px;
+    transition: all .15s ease;
+  }
+  .btn-add-section:hover { background: #111; color: #fff; border-color: #111; }
+
+  .btn-add-bullet {
+    border: 0; background: transparent;
+    color: #6b7280; font-size: .78rem; font-weight: 500;
+    padding: .25rem 0;
+  }
+  .btn-add-bullet:hover { color: #111; }
+
+  .bullet-row { display: flex; gap: .4rem; align-items: flex-start; margin-bottom: .4rem; }
+  .bullet-dot { color: #9ca3af; padding-top: .55rem; }
+  .bullet-row textarea { flex: 1; resize: none; }
+  .btn-bullet-remove {
+    border: 0; background: transparent;
+    color: #9ca3af; padding: .35rem .4rem; border-radius: 4px;
+    margin-top: .15rem;
+  }
+  .btn-bullet-remove:hover { background: #fee2e2; color: #dc2626; }
+
+  .btn-download {
+    background: #111827; color: #fff; border: 0;
+    padding: .5rem 1rem; border-radius: 6px;
+    font-size: .85rem; font-weight: 500;
+    display: inline-flex; align-items: center; gap: .35rem;
+  }
+  .btn-download:hover { background: #1f2937; color: #fff; }
+
+  .btn-toggle-preview {
+    background: #f3f4f6; color: #374151; border: 0;
+    padding: .5rem .85rem; border-radius: 6px;
+    font-size: .85rem; font-weight: 500;
+  }
+
+  /* BACKEND TOOLS */
+  .backend-status {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .35rem .55rem;
+    background: #f3f4f6; color: #6b7280;
+    border-radius: 5px; font-size: .72rem; font-weight: 500;
+  }
+  .backend-status.online { background: #dcfce7; color: #15803d; }
+  .backend-status.offline { background: #fee2e2; color: #991b1b; }
+  .backend-status .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  }
+  .backend-status.online .dot { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+
+  .upload-zone {
+    display: block;
+    border: 1.5px dashed #d4d4d8;
+    border-radius: 8px;
+    padding: 1.1rem 1rem;
+    text-align: center;
+    background: #fafaf9;
+    transition: all .15s ease;
+    cursor: pointer;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    background: #fff; border-color: #111; color: #111;
+  }
+  .upload-zone i { font-size: 1.4rem; color: #9ca3af; }
+  .upload-zone .upload-text { font-size: .85rem; color: #4b5563; margin-top: .3rem; }
+  .upload-zone .upload-hint { font-size: .72rem; color: #9ca3af; margin-top: .15rem; }
+  .upload-file-input { display: none; }
+
+  .uploaded-file {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .6rem .75rem;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 6px;
+    font-size: .8rem;
+  }
+  .uploaded-file .file-info { display: flex; align-items: center; gap: .55rem; color: #065f46; min-width: 0; }
+  .uploaded-file .file-info i { font-size: 1.1rem; }
+  .uploaded-file .file-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .uploaded-file .file-meta { color: #047857; font-size: .7rem; }
+  .uploaded-file button {
+    border: 0; background: transparent; flex-shrink: 0;
+    color: #059669; padding: .25rem .4rem; border-radius: 4px;
+  }
+  .uploaded-file button:hover { background: #d1fae5; }
+
+  .resume-preview-box {
+    margin-top: .5rem; padding: .55rem .65rem;
+    background: #fafaf9; border: 1px solid var(--line); border-radius: 6px;
+    font-size: .72rem; color: #4b5563;
+    max-height: 110px; overflow: auto; white-space: pre-wrap;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  .tool-action-btn {
+    width: 100%;
+    padding: .55rem;
+    background: #111; color: #fff;
+    border: 0; border-radius: 6px;
+    font-size: .82rem; font-weight: 500;
+    display: flex; align-items: center; justify-content: center; gap: .35rem;
+    transition: background .15s ease;
+  }
+  .tool-action-btn:hover:not(:disabled) { background: #1f2937; }
+  .tool-action-btn:disabled { background: #d4d4d8; cursor: not-allowed; }
+
+  .char-counter {
+    font-size: .7rem; color: #9ca3af;
+    text-align: right; margin-top: .2rem;
+  }
+
+  .tool-divider {
+    border: 0; border-top: 1px solid var(--line); margin: 1rem 0;
+  }
+
+  /* Auto-sync status — replaces the old "Sync to Backend" button.
+     States: "idle" (synced, gray-green), "saving" (amber, animated),
+     "error" (red), "offline" (gray, muted). */
+  .sync-status {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .3rem .6rem;
+    border-radius: 5px;
+    font-size: .72rem; font-weight: 500;
+    background: #ecfdf5; color: #047857;
+    border: 1px solid #a7f3d0;
+    transition: background .2s ease, color .2s ease, border-color .2s ease;
+  }
+  .sync-status i { font-size: .85rem; }
+  .sync-status[data-state="saving"] {
+    background: #fffbeb; color: #92400e; border-color: #fde68a;
+  }
+  .sync-status[data-state="saving"] i {
+    animation: sync-spin 0.9s linear infinite;
+    transform-origin: 50% 50%;
+    display: inline-block;
+  }
+  .sync-status[data-state="error"] {
+    background: #fef2f2; color: #991b1b; border-color: #fecaca;
+  }
+  .sync-status[data-state="offline"] {
+    background: #f3f4f6; color: #6b7280; border-color: #e5e7eb;
+  }
+  @keyframes sync-spin { to { transform: rotate(360deg); } }
+
+  .toast {
+    position: fixed; bottom: 20px; right: 20px;
+    padding: .7rem 1.1rem;
+    border-radius: 6px;
+    font-size: .85rem; font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    z-index: 9999;
+    opacity: 0; transform: translateY(10px);
+    transition: all .25s ease;
+    max-width: 360px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: #15803d; color: #fff; }
+  .toast.error   { background: #b91c1c; color: #fff; }
+  .toast.info    { background: #1f2937; color: #fff; }
+
+  /* PREVIEW */
+  .preview-pane {
+    flex: 1; background: #e7e5e4;
+    overflow: auto; padding: 1.5rem 1rem 3rem;
+  }
+  .preview-wrap {
+    transform: scale(.92);
+    transform-origin: top center;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 14px;
+  }
+
+  /* RESUME PAGE — A4 (densely packed, single-page friendly) */
+  .resume-page {
+    width: var(--page-w);
+    height: var(--page-h);
+    padding: var(--page-pad-y) var(--page-pad-x);
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 14px rgba(0,0,0,.06);
+    font-size: 9pt;
+    line-height: 1.25;
+    overflow: hidden;
+    position: relative;
+    box-sizing: border-box;
+  }
+  .resume-page .page-num {
+    position: absolute;
+    bottom: 4mm; right: var(--page-pad-x);
+    font-size: 7.5pt; color: #9ca3af;
+    letter-spacing: .04em;
+  }
+
+  /* Hidden measurement container — mirrors real page content area */
+  .measure-host {
+    position: absolute; left: -10000px; top: 0;
+    width: var(--page-w);
+    padding: 0 var(--page-pad-x);
+    box-sizing: border-box;
+    font-family: "Source Sans 3", sans-serif;
+    font-size: 9pt;
+    line-height: 1.25;
+    color: var(--ink);
+    visibility: hidden;
+  }
+
+  /* RESUME TYPOGRAPHY — modeled on the supplied template */
+  .r-name {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 16pt; font-weight: 700;
+    letter-spacing: .01em; margin: 0; color: #111;
+    text-align: center;
+  }
+  .r-title { text-align: center; font-size: 9pt; color: #555; margin-top: 1px; letter-spacing: .04em; }
+  .r-contact { text-align: center; font-size: 9pt; color: #333; margin-top: 2px; }
+  .r-contact a {
+  color: inherit;
+  text-decoration: none;
+  }
+  .r-contact a:hover { text-decoration: underline; }
+  .r-contact span.sep { color: #888; margin: 0 5px; }
+  .r-header { margin-bottom: 4px; }
+
+  .r-section-heading {
+    font-size: 10pt; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: #111; border-bottom: 1px solid #222;
+    padding-bottom: 1px; margin: 20px 0 3px 0;
+  }
+  .r-section-heading.continued::after {
+    content: " (continued)";
+    font-weight: 400; font-size: 7.5pt;
+    color: #999; letter-spacing: .04em;
+    text-transform: none;
+  }
+
+  .r-block { margin-bottom: 4px; }
+  .r-block.summary { margin-bottom: 5px; }
+  .r-block.section-end { margin-bottom: 5px; }
+
+  .r-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .r-row > div:first-child { flex: 1; min-width: 0; }
+  .r-bold { font-weight: 700; }
+  .r-light { font-weight: 400; color: #444; }
+  .r-italic { font-style: italic; color: #333; }
+  .r-date { font-size: 9pt; color: #333; white-space: nowrap; font-weight: 400; }
+  .r-list { margin: 1px 0 0 0; padding-left: 14px; }
+  .r-list li { margin-bottom: 0px; color: #222; }
+  .r-summary { margin: 0; text-align: justify; color: #222; }
+
+  /* Single-line skills/cert rows like the template: "Languages: Python, R, ..." */
+  .r-inline-line { margin-bottom: 1px; color: #222; }
+  .r-inline-line .cat { font-weight: 700; }
+
+  /* RESPONSIVE */
+  @media (max-width: 1200px) { .preview-wrap { transform: scale(.82); } }
+  @media (max-width: 1000px) { .preview-wrap { transform: scale(.7); } }
+  @media (max-width: 900px) {
+    .editor-pane { width: 100%; }
+    .editor-pane.hidden-mobile { display: none; }
+    .preview-pane.hidden-mobile { display: none; }
+    .preview-wrap { transform: scale(.5); }
+  }
+
+  /* PRINT */
+  @media print {
+    body { background: #fff; overflow: visible; height: auto; }
+    .topbar, .editor-pane, .editor-banner, .ats-panel { display: none !important; }
+    .main-split, .preview-pane { overflow: visible !important; padding: 0 !important; background: #fff !important; }
+    .preview-wrap { transform: none !important; gap: 0 !important; }
+    .resume-page {
+      box-shadow: none !important;
+      width: 210mm !important;
+      height: 297mm !important;
+      page-break-after: always;
+      break-after: page;
+    }
+    .resume-page:last-child { page-break-after: auto; break-after: auto; }
+    /* Strip review highlights from the printed PDF — recruiter sees clean text. */
+    .resume-page mark.kw-added {
+      background: transparent !important;
+      color: inherit !important;
+      padding: 0 !important;
+    }
+    @page { size: A4; margin: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-icon"><i class="bi bi-file-earmark-text"></i></div>
+      <div>
+        <div class="brand-title">Resume Builder</div>
+        <div class="brand-sub">Tech / Software roles</div>
+      </div>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <span class="backend-status offline" id="backendStatus" title="Backend connection">
+        <span class="dot"></span><span id="backendStatusText">checking…</span>
+      </span>
+      <span class="page-counter">
+        <i class="bi bi-files"></i><span id="pageCounterText">1 page</span>
+      </span>
+
+      <!-- Original / ATS Friendly toggle. Hidden until a tailored CV exists. -->
+      <span class="version-toggle" id="versionToggle" hidden>
+        <button class="vt-btn active" id="vtOriginal" onclick="setView('original')" title="Show your original CV">
+          Original
+        </button>
+        <button class="vt-btn" id="vtTailored" onclick="setView('tailored')" title="Show the ATS-tailored CV">
+          <i class="bi bi-magic"></i> ATS Friendly
+        </button>
+      </span>
+
+      <!-- ATS score pill — clickable, expands a panel -->
+      <span class="ats-pill" id="atsPill" title="ATS keyword match — click for details">
+        <i class="bi bi-bullseye"></i>
+        <span>ATS:</span>
+        <span class="ats-num" id="atsNumText">--%</span>
+
+        <!-- Expandable panel anchored to the pill -->
+        <div class="ats-panel" id="atsPanel" hidden>
+          <div class="ats-summary">
+            <div class="big" id="atsPanelScore">--%</div>
+            <div class="small">
+              <div><span id="atsPanelMatched">0</span> of <span id="atsPanelTotal">0</span> JD keywords matched</div>
+              <div id="atsPanelHint" style="margin-top:2px;">Save a job description to start scoring.</div>
+            </div>
+          </div>
+
+          <!-- Versus row, only shown when a tailored CV exists -->
+          <div class="ats-versus" id="atsVersus" hidden>
+            <div class="vs-side" id="vsOriginal">
+              <div class="vs-label">Original</div>
+              <div class="vs-num" id="vsOriginalNum">--%</div>
+            </div>
+            <div class="vs-arrow"><i class="bi bi-arrow-right"></i></div>
+            <div class="vs-side" id="vsTailored">
+              <div class="vs-label">ATS Friendly</div>
+              <div class="vs-num" id="vsTailoredNum">--%</div>
+            </div>
+          </div>
+
+          <h4>Matched <span class="text-muted" style="font-weight:400;">(in current view)</span></h4>
+          <div class="ats-chip-row" id="atsMatchedChips"><div class="ats-empty">No matches yet.</div></div>
+
+          <h4>Missing <span class="text-muted" style="font-weight:400;">(consider adding if applicable)</span></h4>
+          <div class="ats-chip-row" id="atsMissingChips"><div class="ats-empty">Nothing missing.</div></div>
+
+          <div class="ats-actions">
+            <button class="ats-btn" id="buildBtn" onclick="buildTailoredCV()" disabled>
+              <i class="bi bi-magic"></i> <span id="buildBtnLabel">Build ATS Version</span>
+            </button>
+          </div>
+        </div>
+      </span>
+
+      <button class="btn-toggle-preview d-md-none" id="toggleBtn">
+        <i class="bi bi-eye"></i> <span id="toggleLabel">Preview</span>
+      </button>
+      <button class="btn-download" onclick="window.print()">
+        <i class="bi bi-download"></i> Download PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN SPLIT -->
+  <div class="main-split">
+    <!-- EDITOR -->
+    <div class="editor-pane" id="editorPane">
+      <div class="editor-banner">
+        <i class="bi bi-stars text-warning"></i>
+        Updates appear instantly · Content flows to new A4 pages automatically →
+      </div>
+      <div class="editor-scroll">
+        <div class="accordion accordion-flush" id="formAccordion">
+
+          <!-- AI TOOLS — Upload & Job Description -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sec-tools">
+                <span class="section-icon"><i class="bi bi-magic"></i></span>AI Tools — Upload &amp; Target
+              </button>
+            </h2>
+            <div id="sec-tools" class="accordion-collapse collapse show" data-bs-parent="#formAccordion">
+              <div class="accordion-body">
+
+                <!-- Resume Upload -->
+                <label class="form-label-sm">Past Resume</label>
+                <label class="upload-zone" for="resumeFileInput" id="uploadZone">
+                  <i class="bi bi-cloud-upload"></i>
+                  <div class="upload-text">Click to upload or drag &amp; drop</div>
+                  <div class="upload-hint">PDF, DOCX or TXT · max 10 MB</div>
+                </label>
+                <input type="file" id="resumeFileInput" class="upload-file-input" accept=".pdf,.docx,.txt,.md" />
+                <div id="uploadedFileDisplay" style="display:none; margin-top:.55rem;"></div>
+                <div id="resumePreview" class="resume-preview-box" style="display:none;"></div>
+
+                <hr class="tool-divider" />
+
+                <!-- Job Description -->
+                <label class="form-label-sm">Target Job Description</label>
+                <textarea id="jdTextarea" class="form-control" rows="6" placeholder="Paste the job description you're targeting…"></textarea>
+                <div class="char-counter" id="jdCharCounter">0 characters</div>
+                <button class="tool-action-btn mt-2" onclick="saveJobDescription()" id="saveJDBtn">
+                  <i class="bi bi-cloud-arrow-up"></i> Extract ATS Friendly Keywords from Job Description
+                </button>
+
+                <hr class="tool-divider" />
+
+                <!-- Auto-sync status. The CV is pushed to the backend
+                     automatically after every edit (debounced) and
+                     immediately on resume upload / JSON import. -->
+                <div class="sync-status" id="syncStatus" data-state="idle">
+                  <i class="bi bi-cloud-check"></i>
+                  <span id="syncStatusText">Synced</span>
+                </div>
+
+                <hr class="tool-divider" />
+
+                <!-- JSON Import / Export -->
+                <div class="d-flex gap-2">
+                  <button class="btn-add-section" onclick="exportJSON()" style="flex:1;">
+                    <i class="bi bi-download"></i> Export JSON
+                  </button>
+                  <label class="btn-add-section" for="jsonImportInput" style="flex:1; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:.35rem;">
+                    <i class="bi bi-upload"></i> Import JSON
+                  </label>
+                  <input type="file" id="jsonImportInput" accept=".json" style="display:none;" />
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- PERSONAL -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-personal">
+                <span class="section-icon"><i class="bi bi-person"></i></span>Personal Info
+              </button>
+            </h2>
+            <div id="sec-personal" class="accordion-collapse collapse" data-bs-parent="#formAccordion">
+              <div class="accordion-body">
+                <div class="row g-3">
+                  <div class="col-6"><label class="form-label-sm">Full Name</label><input class="form-control" data-bind="personal.name" placeholder="Alex Morgan" /></div>
+                  <div class="col-6"><label class="form-label-sm">Title / Role</label><input class="form-control" data-bind="personal.title" placeholder="Software Engineer" /></div>
+                  <div class="col-6"><label class="form-label-sm">Email</label><input class="form-control" data-bind="personal.email" placeholder="you@example.com" /></div>
+                  <div class="col-6"><label class="form-label-sm">Phone</label><input class="form-control" data-bind="personal.phone" placeholder="+1 555 123 4567" /></div>
+                  <div class="col-6"><label class="form-label-sm">Location</label><input class="form-control" data-bind="personal.location" placeholder="San Francisco, CA" /></div>
+                  
+                  <div class="col-6"><label class="form-label-sm">Website Label</label><input class="form-control" data-bind="personal.website" placeholder="Portfolio Website" /></div>
+                  <div class="col-6"><label class="form-label-sm">Website URL</label><input class="form-control" data-bind="personal.websiteUrl" placeholder="https://yoursite.dev" /></div>
+
+                  <div class="col-6"><label class="form-label-sm">LinkedIn Label</label><input class="form-control" data-bind="personal.linkedin" placeholder="LinkedIn" /></div>
+                  <div class="col-6"><label class="form-label-sm">LinkedIn URL</label><input class="form-control" data-bind="personal.linkedinUrl" placeholder="https://linkedin.com/in/you" /></div>
+
+                  <div class="col-6"><label class="form-label-sm">GitHub Label</label><input class="form-control" data-bind="personal.github" placeholder="Github" /></div>
+                  <div class="col-6"><label class="form-label-sm">GitHub URL</label><input class="form-control" data-bind="personal.githubUrl" placeholder="https://github.com/you" /></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUMMARY -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-summary">
+                <span class="section-icon"><i class="bi bi-file-text"></i></span>Summary
+              </button>
+            </h2>
+            <div id="sec-summary" class="accordion-collapse collapse" data-bs-parent="#formAccordion">
+              <div class="accordion-body">
+                <label class="form-label-sm">Professional Summary</label>
+                <textarea class="form-control" rows="4" data-bind="summary" placeholder="2–3 sentences describing your experience, focus, and what you bring."></textarea>
+                <div class="text-muted mt-2" style="font-size:.72rem;">Tip: Lead with years of experience, areas of focus, and one differentiator.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- EXPERIENCE -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-experience">
+                <span class="section-icon"><i class="bi bi-briefcase"></i></span>Experience
+              </button>
+            </h2>
+            <div id="sec-experience" class="accordion-collapse collapse" data-bs-parent="#formAccordion">
+              <div class="accordion-body">
+                <div id="experienceList"></div>
+                <button class="btn-add-section" onclick="addExperience()"><i class="bi bi-plus"></i> Add experience</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PROJECTS -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-projects">
+                <span class="section-icon"><i class="bi bi-folder"></i></span>Projects
+              </button>
+            </h2>
+            <div id="sec-projects" class="accordion-collapse collapse" data-bs-parent="#formAccordion">
+              <div class="accordion-body">
+                <div id="projectsList"></div>
+                <button class="btn-add-section" onclick="addProject()"><i class="bi bi-plus"></i> Add project</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- EDUCATION -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-education">
+                <span class="section-icon"><i class="bi bi-mortarboard"></i></span>Education
+              </button>
+            </h2>
+            <div id="sec-education" class="accordion-collapse collapse" data-bs-parent="#formAccordion">
+              <div class="accordion-body">
+                <div id="educationList"></div>
+                <button class="btn-add-section" onclick="addEducation()"><i class="bi bi-plus"></i> Add education</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SKILLS -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-skills">
+                <span class="section-icon"><i class="bi bi-code-slash"></i></span>Technical Skills
+              </button>
+            </h2>
+            <div id="sec-skills" class="accordion-collapse collapse" data-bs-parent="#formAccordion">
+              <div class="accordion-body">
+                <div id="skillsList"></div>
+                <button class="btn-add-section" onclick="addSkill()"><i class="bi bi-plus"></i> Add skill category</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- CERTIFICATIONS -->
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-certs">
+                <span class="section-icon"><i class="bi bi-award"></i></span>Certifications
+              </button>
+            </h2>
+            <div id="sec-certs" class="accordion-collapse collapse" data-bs-parent="#formAccordion">
+              <div class="accordion-body">
+                <div id="certsList"></div>
+                <button class="btn-add-section" onclick="addCert()"><i class="bi bi-plus"></i> Add certification</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="preview-pane" id="previewPane">
+      <div class="preview-wrap" id="pagesContainer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden measurement host -->
+<div class="measure-host" id="measureHost"></div>
+
+<!-- Bootstrap bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  // ---------------- STATE ----------------
+  // The "active" CV — whichever version (original or tailored) is currently
+  // displayed and being edited. We keep two stored versions in `versions`
+  // below; toggling between them deep-copies the chosen version into `data`.
+  // All renderers and input handlers already read/write `data`, so nothing
+  // else has to change — toggling just swaps what `data` contains.
+  let data = {
+  personal: {
+    name: "John Doe",
+    title: "",
+    email: "john.doe@example.com",
+    phone: "+1 (415) 555-0142",
+    location: "San Francisco, CA",
+    website: "Portfolio Website",
+    websiteUrl: "https://johndoe.dev",
+    linkedin: "LinkedIn",
+    linkedinUrl: "https://linkedin.com/in/johndoe",
+    github: "Github",
+    githubUrl: "https://github.com/johndoe"
+  },
+  summary: "",
+  experience: [
+    {
+      id: 1, company: "Stripe", role: "Senior Software Engineer",
+      location: "San Francisco, CA", startDate: "Mar 2023", endDate: "Present",
+      bullets: [
+        "Led the migration of a payment reconciliation service from Ruby to Go, reducing p99 latency by 58% and cutting infrastructure cost by $180K annually.",
+        "Designed and shipped an event-driven idempotency layer in Go and Kafka that processes 4B+ payment events per day with 99.995% uptime.",
+        "Mentored 6 engineers across two squads and led the technical design review process for a 30-person platform org.",
+        "Authored an internal RFC on async batching that was adopted by 3 product teams and reduced cross-region API costs by 22%.",
+        "Owned the on-call rotation for the merchant API; cut average MTTR from 38 to 11 minutes via runbook automation."
+      ]
+    },
+    {
+      id: 2, company: "DoorDash", role: "Software Engineer",
+      location: "San Francisco, CA", startDate: "Jul 2020", endDate: "Feb 2023",
+      bullets: [
+        "Built the core promotions engine in Kotlin and Postgres, serving 600M+ rule evaluations per day with sub-15ms p95 latency.",
+        "Reduced CI build time from 27 minutes to 6 minutes by parallelizing test suites and introducing remote build caching with Bazel.",
+        "Shipped a feature flag rollout system used by 200+ engineers, supporting gradual percentage rollouts and instant kill-switches.",
+        "Partnered with data science to A/B test 14 promotion strategies, surfacing a winning variant that lifted weekly retention by 4.3%.",
+        "Reviewed 800+ pull requests and led a working group that codified the company-wide Go style guide."
+      ]
+    },
+    {
+      id: 3, company: "Pinterest", role: "Software Engineer Intern",
+      location: "San Francisco, CA", startDate: "May 2019", endDate: "Aug 2019",
+      bullets: [
+        "Prototyped a real-time recommendation cache in Redis that improved homefeed load times by 19% in shadow traffic experiments.",
+        "Wrote a load-testing harness in Python and Locust that became the team's standard tool for pre-launch capacity planning."
+      ]
+    }
+  ],
+  education: [
+    {
+      id: 1, school: "Carnegie Mellon University",
+      degree: "Master of Science in Computer Science", location: "",
+      startDate: "Aug 2018", endDate: "May 2020",
+      coursework: "Distributed Systems, Advanced Algorithms, Machine Learning, Database Systems, Cloud Computing",
+      gpa: "3.92/4.0",
+      details: ""
+    },
+    {
+      id: 2, school: "University of Illinois at Urbana-Champaign",
+      degree: "Bachelor of Science in Computer Engineering", location: "",
+      startDate: "Aug 2014", endDate: "May 2018",
+      coursework: "Operating Systems, Compilers, Computer Architecture, Networks, Linear Algebra",
+      gpa: "3.85/4.0",
+      details: ""
+    }
+  ],
+  skills: [
+    { id: 1, category: "Languages", items: "Go, Python, TypeScript, Kotlin, Rust, SQL, Bash." },
+    { id: 2, category: "Databases and Storage", items: "PostgreSQL, MySQL, Redis, DynamoDB, Cassandra, ClickHouse, S3." },
+    { id: 3, category: "Tools/Frameworks", items: "Kubernetes, Docker, Terraform, Bazel, Kafka, gRPC, Envoy, Prometheus, Grafana, AWS (EC2, RDS, Lambda, EKS, S3), GCP, Datadog, PagerDuty, GitHub Actions." },
+    { id: 4, category: "Certifications and MOOCs", items: "AWS Certified Solutions Architect — Professional, CKA (Certified Kubernetes Administrator), Designing Data-Intensive Applications (book club lead)." }
+  ],
+  projects: [
+    {
+      id: 1, name: "OpenQueue", tech: "",
+      link: "https://github.com/johndoe/openqueue",
+      bullets: [
+        "Built a Raft-replicated message queue in Go with at-least-once delivery semantics; achieved 80K msgs/sec on a 3-node cluster with sub-10ms p99 latency. 1.4K GitHub stars."
+      ]
+    },
+    {
+      id: 2, name: "Distributed Rate Limiter", tech: "",
+      link: "",
+      bullets: [
+        "Implemented a token-bucket rate limiter on Redis with Lua scripts for atomicity; benchmarked at 200K ops/sec across a 5-node cluster with consistent fairness across keys."
+      ]
+    },
+    {
+      id: 3, name: "LLM Code Review Bot", tech: "",
+      link: "",
+      bullets: [
+        "Built a GitHub bot in Python that reviews pull requests using OpenAI APIs, surfacing 70%+ of bugs caught by senior reviewers in a 200-PR offline evaluation."
+      ]
+    },
+    {
+      id: 4, name: "Realtime Pong with WebRTC", tech: "",
+      link: "",
+      bullets: [
+        "Built a peer-to-peer multiplayer Pong using WebRTC data channels and TypeScript with sub-50ms input latency across continents."
+      ]
+    },
+    {
+      id: 5, name: "Spark on Kubernetes Operator", tech: "",
+      link: "",
+      bullets: [
+        "Wrote a Kubernetes operator in Go that schedules Spark jobs on spot instances; cut batch ETL infra cost by 64% across a 30-job nightly pipeline."
+      ]
+    },
+    {
+      id: 6, name: "Personal Finance Dashboard", tech: "",
+      link: "",
+      bullets: [
+        "Built a self-hosted finance dashboard with Plaid, Postgres, and Next.js that categorizes transactions and forecasts monthly cash flow with a 92% accuracy on held-out data."
+      ]
+    },
+    {
+      id: 7, name: "Chess Engine in Rust", tech: "",
+      link: "",
+      bullets: [
+        "Implemented an alpha-beta search chess engine in Rust with a hand-tuned evaluation; achieved an Elo rating of ~1900 on Lichess in bot play."
+      ]
+    }
+  ],
+  certifications: []
+};
+  // ---------------- HELPERS ----------------
+  const esc = (s) => (s == null ? "" : String(s)).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const uid = () => Date.now() + Math.floor(Math.random() * 1000);
+  const getByPath = (path) => path.split(".").reduce((o, k) => o?.[k], data);
+  function setByPath(path, value) {
+    const keys = path.split(".");
+    let obj = data;
+    for (let i = 0; i < keys.length - 1; i++) obj = obj[keys[i]];
+    obj[keys[keys.length - 1]] = value;
+  }
+
+  // ATS / tailoring state — populated by backend calls below.
+  // `highlights` is keyed by the same dotted path the backend uses
+  // ("experience.0.bullets.2", "skills.1.items", ...) so renderers can
+  // wrap matching substrings in <mark>.
+  const ats = {
+    keywords: [],          // [{term, category, importance}]
+    score: null,           // active CV's score; {score, matched, total, matched_terms, missing_terms}
+    scoreOriginal: null,   // score for the original CV (always against current keywords)
+    scoreTailored: null,   // score for the tailored CV (null until built)
+    highlights: {},        // {path: [[start,end], ...]} — derived from active matched_terms
+    panelOpen: false,
+  };
+
+  // Dual-CV state: two stored versions + which one is currently displayed.
+  // The active CV is always mirrored into the global `data` object so every
+  // existing renderer and input handler keeps working unchanged.
+  // `tailored` is null until the user clicks "Build ATS Version".
+  const versions = {
+    mode: "original",        // "original" | "tailored"
+    original: null,          // populated lazily from current `data` on first save
+    tailored: null,          // populated by /api/build-tailored-cv
+  };
+  // Deep-clone helper. structuredClone is in all modern browsers.
+  const cloneCV = (obj) => (typeof structuredClone === "function")
+    ? structuredClone(obj)
+    : JSON.parse(JSON.stringify(obj));
+
+  // Save the current `data` back into the appropriate stored version.
+  // Called before switching modes, and after every edit (debounced via
+  // refreshPreview).
+  function persistCurrentVersion() {
+    versions[versions.mode] = cloneCV(data);
+  }
+
+  // Load the chosen stored version into `data` and re-render everything.
+  // Caller is responsible for checking that the target version exists.
+  function loadVersion(mode) {
+    if (!versions[mode]) return;
+    const snap = cloneCV(versions[mode]);
+    // Mutate `data` in place so any held references stay valid.
+    Object.keys(data).forEach(k => delete data[k]);
+    Object.assign(data, snap);
+    versions.mode = mode;
+  }
+
+  // Escape a string for HTML, but wrap each [start,end] span in <mark class="kw-added">.
+  // Spans must be sorted ascending and non-overlapping (the backend guarantees this).
+  function escWithHighlights(text, spans) {
+    if (!text) return "";
+    if (!spans || !spans.length) return esc(text);
+    let out = "";
+    let cursor = 0;
+    for (const [s, e] of spans) {
+      if (s < cursor || e <= s || e > text.length) continue;  // skip malformed
+      out += esc(text.slice(cursor, s));
+      out += `<mark class="kw-added">${esc(text.slice(s, e))}</mark>`;
+      cursor = e;
+    }
+    out += esc(text.slice(cursor));
+    return out;
+  }
+  // Look up highlight spans for a dotted path; returns [] if none.
+  const hl = (path) => ats.highlights[path] || null;
+
+  // ---------------- BUILD HTML BLOCKS ----------------
+  function headerHTML() {
+  const p = data.personal;
+  const ensureHttp = (u) => /^https?:\/\//i.test(u) ? u : `https://${u}`;
+
+  // Render label as a clickable link if a URL is set; otherwise plain text.
+  const labeledLink = (label, url) => {
+    if (!label) return "";
+    if (!url)   return esc(label);
+    return `<a href="${esc(ensureHttp(url.trim()))}" target="_blank" rel="noopener">${esc(label)}</a>`;
+  };
+
+  const phoneItem    = p.phone    ? `<a href="tel:${esc(p.phone.replace(/[^\d+]/g, ""))}">${esc(p.phone)}</a>` : "";
+  const emailItem    = p.email    ? `<a href="mailto:${esc(p.email)}">${esc(p.email)}</a>`                     : "";
+  const linkedinItem = labeledLink(p.linkedin, p.linkedinUrl);
+  const websiteItem  = labeledLink(p.website,  p.websiteUrl);
+  const githubItem   = labeledLink(p.github,   p.githubUrl);
+  const locationItem = p.location ? esc(p.location) : "";
+
+  const contactParts = [phoneItem, emailItem, linkedinItem, websiteItem, githubItem, locationItem]
+    .filter(Boolean);
+  const contactLine = contactParts.join('<span class="sep">|</span>');
+
+  return `
+    <div class="r-header">
+      <h1 class="r-name">${esc(p.name) || "Your Name"}</h1>
+      ${p.title ? `<div class="r-title">${esc(p.title)}</div>` : ""}
+      ${contactLine ? `<div class="r-contact">${contactLine}</div>` : ""}
+    </div>`;
+}
+
+  function entryExperienceHTML(e, isLast, expIdx) {
+    // Bullets get their own dotted path so backend-supplied highlight spans
+    // wrap inserted JD keywords in <mark>.
+    const bullets = e.bullets
+      .map((b, j) => ({ raw: b, path: `experience.${expIdx}.bullets.${j}` }))
+      .filter(x => (x.raw || "").trim())
+      .map(x => `<li>${escWithHighlights(x.raw, hl(x.path))}</li>`)
+      .join("");
+    const dates = [e.startDate, e.endDate].filter(Boolean).map(esc).join(" - ");
+    const cls = isLast ? "r-block section-end" : "r-block";
+
+    // Header line: "Role - Company, Location"
+    const headParts = [];
+    if (e.role)     headParts.push(`<span class="r-bold">${esc(e.role)}</span>`);
+    if (e.company)  headParts.push(`<span class="r-bold"> - ${esc(e.company)}</span>`);
+    if (e.location) headParts.push(`<span class="r-light">, ${esc(e.location)}</span>`);
+    const headLine = headParts.join("");
+
+    return `
+      <div class="${cls}">
+        <div class="r-row">
+          <div>${headLine || '<span class="r-bold">Role - Company</span>'}</div>
+          <div class="r-date">${dates}</div>
+        </div>
+        ${bullets ? `<ul class="r-list">${bullets}</ul>` : ""}
+      </div>`;
+  }
+
+  // Projects render as a SINGLE bulleted list under one heading,
+  // matching the supplied template. Each project is one <li> with:
+  //   <b>Project Name:</b> description text  [Link]
+  // The "description" comes from joining the project's non-empty bullets.
+  function projectsBlockHTML() {
+    // Keep original indexes so highlight paths stay in sync with the data array.
+    const filled = data.projects
+      .map((p, i) => ({ p, i }))
+      .filter(({ p }) => (p.name || "").trim() || (p.bullets || []).some(b => b.trim()));
+    if (!filled.length) return "";
+    const items = filled.map(({ p, i }) => {
+      // For each non-empty bullet, escape with its highlight spans.
+      const descParts = (p.bullets || [])
+        .map((b, j) => ({ raw: b, path: `projects.${i}.bullets.${j}` }))
+        .filter(x => (x.raw || "").trim())
+        .map(x => escWithHighlights(x.raw, hl(x.path)));
+      const desc = descParts.join(" ");
+
+      const linkHtml = (p.link || "").trim()
+        ? ` <a href="${esc(p.link)}" style="color:#1d4ed8; text-decoration:none;">[Link]</a>`
+        : "";
+      const techPath = `projects.${i}.tech`;
+      const techHtml = (p.tech || "").trim()
+        ? `<span class="r-light" style="font-style:italic;"> (${escWithHighlights(p.tech, hl(techPath))})</span>`
+        : "";
+      const namePart = p.name ? `<span class="r-bold">${esc(p.name)}:</span>${techHtml} ` : "";
+      return `<li>${namePart}${desc}${linkHtml}</li>`;
+    }).join("");
+    return `<div class="r-block section-end"><ul class="r-list" style="margin-top:0;">${items}</ul></div>`;
+  }
+
+  function entryEducationHTML(ed, isLast) {
+    const dates = [ed.startDate, ed.endDate].filter(Boolean).map(esc).join(" - ");
+    const cls = isLast ? "r-block section-end" : "r-block";
+
+    // Top line: "School, Degree" (left)  +  "dates" (right)  — matches template
+    const headParts = [];
+    if (ed.school) headParts.push(`<span class="r-bold">${esc(ed.school)}</span>`);
+    if (ed.degree) headParts.push(`<span class="r-light">, ${esc(ed.degree)}</span>`);
+    const headLine = headParts.join("");
+
+    // Bottom line: "Relevant Coursework: ..."  +  "GPA: x.xx"
+    // Prefer the explicit `coursework` / `gpa` fields; fall back to legacy `details` blob.
+    const coursework = (ed.coursework || "").trim();
+    const gpa        = (ed.gpa || "").trim();
+    const details    = (ed.details || "").trim();
+
+    let detailLine = "";
+    if (coursework || gpa) {
+      const left  = coursework ? `Relevant Coursework: ${esc(coursework)}` : "";
+      const right = gpa ? `GPA: ${esc(gpa)}` : "";
+      detailLine = `
+        <div class="r-row">
+          <div style="font-style:italic; color:#333;">${left}</div>
+          ${right ? `<div class="r-date" style="font-style:italic;">${right}</div>` : ""}
+        </div>`;
+    } else if (details) {
+      detailLine = `<div style="color:#333; font-style:italic;">${esc(details)}</div>`;
+    }
+
+    // Optional location appears small under the head line if present
+    const locationLine = ed.location
+      ? `<div class="r-light" style="font-size:8.5pt;">${esc(ed.location)}</div>`
+      : "";
+
+    return `
+      <div class="${cls}">
+        <div class="r-row">
+          <div>${headLine || '<span class="r-bold">School</span>'}</div>
+          <div class="r-date">${dates}</div>
+        </div>
+        ${detailLine}
+        ${locationLine}
+      </div>`;
+  }
+
+  function skillsBlockHTML() {
+    // Iterate with original index so highlight paths line up with data.skills.
+    const filled = data.skills
+      .map((s, i) => ({ s, i }))
+      .filter(({ s }) => s.category || s.items);
+    if (!filled.length) return "";
+    const rows = filled.map(({ s, i }) => {
+      const cat = (s.category || "").trim();
+      const items = (s.items || "").trim();
+      if (!cat && !items) return "";
+      const itemsHtml = escWithHighlights(items, hl(`skills.${i}.items`));
+      return `<div class="r-inline-line">${cat ? `<span class="cat">${esc(cat)}:</span> ` : ""}${itemsHtml}</div>`;
+    }).join("");
+    return `<div class="r-block section-end">${rows}</div>`;
+  }
+
+  function certsBlockHTML() {
+    const filled = data.certifications.filter(c => c.name);
+    if (!filled.length) return "";
+    // Compact single-line format: "Name (Issuer, Date), Name (Issuer, Date)..."
+    // — but with each cert on its own row when a date is given, like the template.
+    const rows = filled.map(c => {
+      const meta = [c.issuer, c.date].filter(Boolean).map(esc).join(" · ");
+      return `
+        <div class="r-row" style="margin-bottom:1px;">
+          <div><span style="font-weight:600;">${esc(c.name)}</span>${c.issuer ? `<span class="r-light"> · ${esc(c.issuer)}</span>` : ""}</div>
+          ${c.date ? `<div class="r-date">${esc(c.date)}</div>` : ""}
+        </div>`;
+    }).join("");
+    return `<div class="r-block section-end">${rows}</div>`;
+  }
+
+  // Build flat ordered list of blocks. Each is an atomic unit for pagination.
+  function buildBlocks() {
+    const blocks = [];
+    blocks.push({ kind: "header", html: headerHTML() });
+
+    if (data.summary && data.summary.trim()) {
+      blocks.push({ kind: "section", section: "Summary", html: `<h2 class="r-section-heading">Summary</h2>` });
+      blocks.push({ kind: "entry", section: "Summary",
+        html: `<div class="r-block summary"><p class="r-summary">${escWithHighlights(data.summary, hl("summary"))}</p></div>` });
+    }
+
+    if (data.experience.length) {
+      blocks.push({ kind: "section", section: "Experience", html: `<h2 class="r-section-heading">Experience</h2>` });
+      data.experience.forEach((e, i) => {
+        blocks.push({ kind: "entry", section: "Experience",
+          html: entryExperienceHTML(e, i === data.experience.length - 1, i) });
+      });
+    }
+
+    if (data.projects.length) {
+      const projectsHTML = projectsBlockHTML();
+      if (projectsHTML) {
+        blocks.push({ kind: "section", section: "Projects", html: `<h2 class="r-section-heading">Projects</h2>` });
+        blocks.push({ kind: "entry", section: "Projects", html: projectsHTML });
+      }
+    }
+
+    if (data.education.length) {
+      blocks.push({ kind: "section", section: "Education", html: `<h2 class="r-section-heading">Education</h2>` });
+      data.education.forEach((ed, i) => {
+        blocks.push({ kind: "entry", section: "Education",
+          html: entryEducationHTML(ed, i === data.education.length - 1) });
+      });
+    }
+
+    const skills = skillsBlockHTML();
+    if (skills) {
+      blocks.push({ kind: "section", section: "Technical Skills", html: `<h2 class="r-section-heading">Technical Skills</h2>` });
+      blocks.push({ kind: "entry", section: "Technical Skills", html: skills });
+    }
+
+    const certs = certsBlockHTML();
+    if (certs) {
+      blocks.push({ kind: "section", section: "Certifications", html: `<h2 class="r-section-heading">Certifications</h2>` });
+      blocks.push({ kind: "entry", section: "Certifications", html: certs });
+    }
+    return blocks;
+  }
+
+  // ---------------- PAGINATION ----------------
+  const mmToPx = (mm) => mm * 96 / 25.4;
+
+  function getContentHeightPx() {
+    // Read padding from the CSS variable so pagination stays in sync if the margin changes.
+    const padYmm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-pad-y')) || 8;
+    return mmToPx(297) - mmToPx(padYmm) * 2 - mmToPx(4);
+  }
+
+  function paginate() {
+    const blocks = buildBlocks();
+    const measure = document.getElementById("measureHost");
+
+    // Render each block with its wrapper for accurate measurement.
+    measure.innerHTML = blocks.map((b, i) => `<div data-i="${i}">${b.html}</div>`).join("");
+
+    const wrappers = measure.querySelectorAll("[data-i]");
+    wrappers.forEach((w, i) => {
+      // offsetHeight + the inner block's vertical margins (margins don't show in offsetHeight).
+      let h = w.offsetHeight;
+      const inner = w.firstElementChild;
+      if (inner) {
+        const cs = window.getComputedStyle(inner);
+        h += (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+      }
+      blocks[i].height = h;
+    });
+
+    const contentHeightPx = getContentHeightPx();
+
+    // Distribute into pages
+    const pages = [[]];
+    let used = 0;
+
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+
+      // Avoid orphan section heading: if heading + next entry won't fit, push to new page.
+      if (b.kind === "section" && i + 1 < blocks.length) {
+        const next = blocks[i + 1];
+        if (used + b.height + next.height > contentHeightPx && pages[pages.length - 1].length > 0) {
+          pages.push([]);
+          used = 0;
+        }
+      }
+
+      // If block doesn't fit and current page has content, start new page
+      if (used + b.height > contentHeightPx && pages[pages.length - 1].length > 0) {
+        pages.push([]);
+        used = 0;
+      }
+
+      // If we just started a new page and this is an entry without its heading,
+      // prepend a "(continued)" heading.
+      const currentPage = pages[pages.length - 1];
+      if (currentPage.length === 0 && b.kind === "entry" && b.section && b.section !== "Summary") {
+        const headingHTML = `<h2 class="r-section-heading continued">${esc(b.section)}</h2>`;
+        const tmp = document.createElement("div");
+        tmp.innerHTML = headingHTML;
+        measure.appendChild(tmp);
+        let hh = tmp.offsetHeight;
+        const innerH = tmp.firstElementChild;
+        if (innerH) {
+          const cs = window.getComputedStyle(innerH);
+          hh += (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+        }
+        measure.removeChild(tmp);
+        currentPage.push({ kind: "section-cont", html: headingHTML, height: hh });
+        used += hh;
+      }
+
+      currentPage.push(b);
+      used += b.height;
+    }
+
+    // Render
+    const container = document.getElementById("pagesContainer");
+    const totalPages = pages.length;
+    container.innerHTML = pages.map((pageBlocks, idx) => {
+      const inner = pageBlocks.map(b => b.html).join("");
+      const footer = totalPages > 1
+        ? `<div class="page-num">${idx + 1} / ${totalPages}</div>`
+        : "";
+      return `<div class="resume-page">${inner}${footer}</div>`;
+    }).join("");
+
+    document.getElementById("pageCounterText").textContent =
+      totalPages === 1 ? "1 page" : `${totalPages} pages`;
+
+    measure.innerHTML = "";
+  }
+
+  // ---------------- RENDER FORM SECTIONS ----------------
+  function renderExperience() {
+    const list = document.getElementById("experienceList");
+    list.innerHTML = data.experience.map(e => `
+      <div class="sub-card">
+        <button class="btn-remove" onclick="removeExperience(${e.id})" title="Remove"><i class="bi bi-trash"></i></button>
+        <div class="row g-2 mb-2">
+          <div class="col-6"><label class="form-label-sm">Company</label><input class="form-control" value="${esc(e.company)}" oninput="updExp(${e.id},'company',this.value)" /></div>
+          <div class="col-6"><label class="form-label-sm">Role</label><input class="form-control" value="${esc(e.role)}" oninput="updExp(${e.id},'role',this.value)" /></div>
+          <div class="col-6"><label class="form-label-sm">Location</label><input class="form-control" value="${esc(e.location)}" oninput="updExp(${e.id},'location',this.value)" /></div>
+          <div class="col-3"><label class="form-label-sm">Start</label><input class="form-control" value="${esc(e.startDate)}" oninput="updExp(${e.id},'startDate',this.value)" /></div>
+          <div class="col-3"><label class="form-label-sm">End</label><input class="form-control" value="${esc(e.endDate)}" oninput="updExp(${e.id},'endDate',this.value)" /></div>
+        </div>
+        <label class="form-label-sm">Bullet points</label>
+        <div>
+          ${e.bullets.map((b, i) => `
+            <div class="bullet-row">
+              <span class="bullet-dot">•</span>
+              <textarea class="form-control" rows="2" oninput="updExpBullet(${e.id},${i},this.value)" placeholder="Strong verb. Add a metric where possible.">${esc(b)}</textarea>
+              <button class="btn-bullet-remove" onclick="removeExpBullet(${e.id},${i})"><i class="bi bi-trash"></i></button>
+            </div>
+          `).join("")}
+          <button class="btn-add-bullet" onclick="addExpBullet(${e.id})"><i class="bi bi-plus"></i> Add bullet</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function renderProjects() {
+    const list = document.getElementById("projectsList");
+    list.innerHTML = data.projects.map(p => {
+      // Surface the joined description as a single textarea (template style).
+      const desc = (p.bullets || []).map(b => (b || "").trim()).filter(Boolean).join(" ");
+      return `
+      <div class="sub-card">
+        <button class="btn-remove" onclick="removeProject(${p.id})"><i class="bi bi-trash"></i></button>
+        <div class="row g-2 mb-2">
+          <div class="col-12"><label class="form-label-sm">Project Name</label><input class="form-control" value="${esc(p.name)}" oninput="updProj(${p.id},'name',this.value)" placeholder="Music Recommendation System" /></div>
+          <div class="col-8"><label class="form-label-sm">Tech Stack (optional)</label><input class="form-control" value="${esc(p.tech)}" oninput="updProj(${p.id},'tech',this.value)" placeholder="Python, PyTorch" /></div>
+          <div class="col-4"><label class="form-label-sm">Link (optional)</label><input class="form-control" value="${esc(p.link)}" oninput="updProj(${p.id},'link',this.value)" placeholder="github.com/..." /></div>
+        </div>
+        <label class="form-label-sm">Description</label>
+        <textarea class="form-control" rows="3" oninput="updProjDesc(${p.id}, this.value)" placeholder="What it does, technologies used, and impact / metrics.">${esc(desc)}</textarea>
+      </div>`;
+    }).join("");
+  }
+
+  function renderEducation() {
+    const list = document.getElementById("educationList");
+    list.innerHTML = data.education.map(ed => `
+      <div class="sub-card">
+        <button class="btn-remove" onclick="removeEducation(${ed.id})"><i class="bi bi-trash"></i></button>
+        <div class="row g-2 mb-2">
+          <div class="col-6"><label class="form-label-sm">School</label><input class="form-control" value="${esc(ed.school)}" oninput="updEdu(${ed.id},'school',this.value)" /></div>
+          <div class="col-6"><label class="form-label-sm">Degree</label><input class="form-control" value="${esc(ed.degree)}" oninput="updEdu(${ed.id},'degree',this.value)" /></div>
+          <div class="col-6"><label class="form-label-sm">Location</label><input class="form-control" value="${esc(ed.location)}" oninput="updEdu(${ed.id},'location',this.value)" /></div>
+          <div class="col-3"><label class="form-label-sm">Start</label><input class="form-control" value="${esc(ed.startDate)}" oninput="updEdu(${ed.id},'startDate',this.value)" /></div>
+          <div class="col-3"><label class="form-label-sm">End</label><input class="form-control" value="${esc(ed.endDate)}" oninput="updEdu(${ed.id},'endDate',this.value)" /></div>
+          <div class="col-9"><label class="form-label-sm">Relevant Coursework</label><input class="form-control" value="${esc(ed.coursework)}" oninput="updEdu(${ed.id},'coursework',this.value)" placeholder="Algorithms, Distributed Systems, ..." /></div>
+          <div class="col-3"><label class="form-label-sm">GPA</label><input class="form-control" value="${esc(ed.gpa)}" oninput="updEdu(${ed.id},'gpa',this.value)" placeholder="3.89/4.0" /></div>
+          <div class="col-12"><label class="form-label-sm">Other Details (optional)</label><textarea class="form-control" rows="2" oninput="updEdu(${ed.id},'details',this.value)" placeholder="Honors, awards, thesis…">${esc(ed.details)}</textarea></div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function renderSkills() {
+    const list = document.getElementById("skillsList");
+    list.innerHTML = data.skills.map(s => `
+      <div class="sub-card">
+        <button class="btn-remove" onclick="removeSkill(${s.id})"><i class="bi bi-trash"></i></button>
+        <div class="mb-2"><label class="form-label-sm">Category</label><input class="form-control" value="${esc(s.category)}" oninput="updSkill(${s.id},'category',this.value)" placeholder="Languages" /></div>
+        <div><label class="form-label-sm">Items</label><textarea class="form-control" rows="2" oninput="updSkill(${s.id},'items',this.value)" placeholder="Go, TypeScript, Python, Rust">${esc(s.items)}</textarea></div>
+      </div>
+    `).join("");
+  }
+
+  function renderCerts() {
+    const list = document.getElementById("certsList");
+    list.innerHTML = data.certifications.map(c => `
+      <div class="sub-card">
+        <button class="btn-remove" onclick="removeCert(${c.id})"><i class="bi bi-trash"></i></button>
+        <div class="mb-2"><label class="form-label-sm">Name</label><input class="form-control" value="${esc(c.name)}" oninput="updCert(${c.id},'name',this.value)" placeholder="AWS Solutions Architect — Pro" /></div>
+        <div class="row g-2">
+          <div class="col-6"><label class="form-label-sm">Issuer</label><input class="form-control" value="${esc(c.issuer)}" oninput="updCert(${c.id},'issuer',this.value)" placeholder="Amazon Web Services" /></div>
+          <div class="col-6"><label class="form-label-sm">Date</label><input class="form-control" value="${esc(c.date)}" oninput="updCert(${c.id},'date',this.value)" placeholder="Nov 2023" /></div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // ---------------- DEBOUNCED PREVIEW ----------------
+  let paginateTimer = null;
+  function refreshPreview() {
+    // Mirror the live `data` back into the active stored version so the
+    // toggle always switches to a CV with the user's most recent edits.
+    persistCurrentVersion();
+    if (paginateTimer) clearTimeout(paginateTimer);
+    paginateTimer = setTimeout(paginate, 60);
+    // Live ATS scoring runs in parallel — debounced separately, only fires
+    // when JD keywords are present so empty sessions cost nothing.
+    refreshScore();
+    // Push edits to the backend in the background. Coalesced (1s quiet
+    // window) so a flurry of keystrokes produces one POST, not many.
+    scheduleSync(1000);
+  }
+
+  // ---------------- DATA UPDATE FUNCTIONS ----------------
+  // Experience
+  window.updExp = (id, field, value) => {
+    const e = data.experience.find(x => x.id === id);
+    if (e) { e[field] = value; refreshPreview(); }
+  };
+  window.updExpBullet = (id, idx, value) => {
+    const e = data.experience.find(x => x.id === id);
+    if (e) { e.bullets[idx] = value; refreshPreview(); }
+  };
+  window.addExpBullet = (id) => {
+    const e = data.experience.find(x => x.id === id);
+    if (e) { e.bullets.push(""); renderExperience(); refreshPreview(); }
+  };
+  window.removeExpBullet = (id, idx) => {
+    const e = data.experience.find(x => x.id === id);
+    if (e) { e.bullets.splice(idx, 1); renderExperience(); refreshPreview(); }
+  };
+  window.addExperience = () => {
+    data.experience.push({ id: uid(), company: "", role: "", location: "", startDate: "", endDate: "", bullets: [""] });
+    renderExperience(); refreshPreview();
+  };
+  window.removeExperience = (id) => {
+    data.experience = data.experience.filter(x => x.id !== id);
+    renderExperience(); refreshPreview();
+  };
+
+  // Projects
+  window.updProj = (id, field, value) => {
+    const p = data.projects.find(x => x.id === id);
+    if (p) { p[field] = value; refreshPreview(); }
+  };
+  // Template-style single-description editing — stored as bullets[0] under the hood
+  // so the existing schema (and Gemini-parsed output) keeps working.
+  window.updProjDesc = (id, value) => {
+    const p = data.projects.find(x => x.id === id);
+    if (p) { p.bullets = [value]; refreshPreview(); }
+  };
+  window.updProjBullet = (id, idx, value) => {
+    const p = data.projects.find(x => x.id === id);
+    if (p) { p.bullets[idx] = value; refreshPreview(); }
+  };
+  window.addProjBullet = (id) => {
+    const p = data.projects.find(x => x.id === id);
+    if (p) { p.bullets.push(""); renderProjects(); refreshPreview(); }
+  };
+  window.removeProjBullet = (id, idx) => {
+    const p = data.projects.find(x => x.id === id);
+    if (p) { p.bullets.splice(idx, 1); renderProjects(); refreshPreview(); }
+  };
+  window.addProject = () => {
+    data.projects.push({ id: uid(), name: "", tech: "", link: "", bullets: [""] });
+    renderProjects(); refreshPreview();
+  };
+  window.removeProject = (id) => {
+    data.projects = data.projects.filter(x => x.id !== id);
+    renderProjects(); refreshPreview();
+  };
+
+  // Education
+  window.updEdu = (id, field, value) => {
+    const ed = data.education.find(x => x.id === id);
+    if (ed) { ed[field] = value; refreshPreview(); }
+  };
+  window.addEducation = () => {
+    data.education.push({ id: uid(), school: "", degree: "", location: "", startDate: "", endDate: "", coursework: "", gpa: "", details: "" });
+    renderEducation(); refreshPreview();
+  };
+  window.removeEducation = (id) => {
+    data.education = data.education.filter(x => x.id !== id);
+    renderEducation(); refreshPreview();
+  };
+
+  // Skills
+  window.updSkill = (id, field, value) => {
+    const s = data.skills.find(x => x.id === id);
+    if (s) { s[field] = value; refreshPreview(); }
+  };
+  window.addSkill = () => {
+    data.skills.push({ id: uid(), category: "", items: "" });
+    renderSkills(); refreshPreview();
+  };
+  window.removeSkill = (id) => {
+    data.skills = data.skills.filter(x => x.id !== id);
+    renderSkills(); refreshPreview();
+  };
+
+  // Certifications
+  window.updCert = (id, field, value) => {
+    const c = data.certifications.find(x => x.id === id);
+    if (c) { c[field] = value; refreshPreview(); }
+  };
+  window.addCert = () => {
+    data.certifications.push({ id: uid(), name: "", issuer: "", date: "" });
+    renderCerts(); refreshPreview();
+  };
+  window.removeCert = (id) => {
+    data.certifications = data.certifications.filter(x => x.id !== id);
+    renderCerts(); refreshPreview();
+  };
+
+  // ---------------- BIND PERSONAL + SUMMARY ----------------
+  function bindStaticInputs() {
+    document.querySelectorAll("[data-bind]").forEach(el => {
+      const path = el.getAttribute("data-bind");
+      el.value = getByPath(path) || "";
+      el.addEventListener("input", () => {
+        setByPath(path, el.value);
+        refreshPreview();
+      });
+    });
+  }
+
+  // ---------------- MOBILE TOGGLE ----------------
+  let previewVisibleMobile = false;
+  document.getElementById("toggleBtn").addEventListener("click", () => {
+    previewVisibleMobile = !previewVisibleMobile;
+    document.getElementById("editorPane").classList.toggle("hidden-mobile", previewVisibleMobile);
+    document.getElementById("previewPane").classList.toggle("hidden-mobile", !previewVisibleMobile);
+    document.getElementById("toggleLabel").textContent = previewVisibleMobile ? "Edit" : "Preview";
+  });
+  if (window.innerWidth < 900) {
+    document.getElementById("previewPane").classList.add("hidden-mobile");
+  }
+
+  // Repaginate on resize
+  window.addEventListener("resize", refreshPreview);
+
+  // ---------------- INITIAL RENDER ----------------
+  bindStaticInputs();
+  renderExperience();
+  renderProjects();
+  renderEducation();
+  renderSkills();
+  renderCerts();
+
+  // Wait for fonts before measuring (avoids early-paginate with wrong heights)
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => paginate());
+  } else {
+    requestAnimationFrame(() => paginate());
+  }
+
+  // ============================================================
+  // BACKEND INTEGRATION (FastAPI on http://localhost:8000)
+  // ============================================================
+  const API_BASE = "http://localhost:8000";
+  let SESSION_ID = localStorage.getItem("resume_session_id") || "default";
+
+  function showToast(message, type = "info") {
+    const el = document.createElement("div");
+    el.className = `toast ${type}`;
+    el.textContent = message;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+    setTimeout(() => {
+      el.classList.remove("show");
+      setTimeout(() => el.remove(), 250);
+    }, 3000);
+  }
+
+  async function checkBackendHealth() {
+    const status = document.getElementById("backendStatus");
+    const text = document.getElementById("backendStatusText");
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 2000);
+      const r = await fetch(`${API_BASE}/api/health`, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (r.ok) {
+        status.classList.remove("offline");
+        status.classList.add("online");
+        text.textContent = "Backend online";
+        return true;
+      }
+    } catch (e) { /* offline */ }
+    status.classList.remove("online");
+    status.classList.add("offline");
+    text.textContent = "Backend offline";
+    return false;
+  }
+
+  async function uploadResume(file) {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("session_id", SESSION_ID);
+
+    showToast("Uploading & parsing with AI…", "info");
+
+    try {
+      const r = await fetch(`${API_BASE}/api/upload-resume`, { method: "POST", body: fd });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.detail || r.statusText);
+
+      const display = document.getElementById("uploadedFileDisplay");
+      display.style.display = "block";
+      display.innerHTML = `
+        <div class="uploaded-file">
+          <div class="file-info">
+            <i class="bi bi-file-earmark-check"></i>
+            <div style="min-width:0;">
+              <div class="file-name">${esc(j.filename)}</div>
+              <div class="file-meta">${(j.size_bytes/1024).toFixed(1)} KB · ${j.char_count.toLocaleString()} characters</div>
+            </div>
+          </div>
+          <button onclick="clearResume()" title="Remove"><i class="bi bi-x-lg"></i></button>
+        </div>`;
+
+      const preview = document.getElementById("resumePreview");
+      preview.style.display = "block";
+      preview.textContent = j.preview;
+
+      // If Gemini parsed the resume, auto-fill the form
+      if (j.parsed_cv) {
+        applyCVData(j.parsed_cv);
+        showToast(`Parsed by Gemini · form auto-filled`, "success");
+      } else if (j.parse_error) {
+        showToast(`Uploaded, but AI parse failed: ${j.parse_error}`, "error");
+      } else if (j.gemini_available === false) {
+        showToast(`Uploaded · ${j.char_count.toLocaleString()} chars (set GEMINI_API_KEY on backend to auto-parse)`, "info");
+      } else {
+        showToast(`Uploaded · ${j.char_count.toLocaleString()} chars extracted`, "success");
+      }
+    } catch (e) {
+      showToast(`Upload failed: ${e.message}`, "error");
+    }
+  }
+
+  // Apply a CV JSON object to the form state and re-render everything.
+  // Used when the user uploads/imports a fresh resume — this becomes the new
+  // baseline, so we replace `versions.original` and discard any previously
+  // built tailored version (it was tailored against the OLD CV).
+  function applyCVData(imported) {
+    if (typeof imported !== "object" || imported === null) {
+      throw new Error("Invalid CV data");
+    }
+    if (!imported.personal) imported.personal = {};
+
+    data.personal       = { ...data.personal, ...(imported.personal || {}) };
+    data.summary        = imported.summary ?? "";
+    data.experience     = Array.isArray(imported.experience)     ? imported.experience     : [];
+    data.education      = Array.isArray(imported.education)      ? imported.education      : [];
+    data.skills         = Array.isArray(imported.skills)         ? imported.skills         : [];
+    data.projects       = Array.isArray(imported.projects)       ? imported.projects       : [];
+    data.certifications = Array.isArray(imported.certifications) ? imported.certifications : [];
+
+    // Backfill new fields (coursework/gpa) on imported education entries so
+    // older JSON exports + Gemini parses without them still render correctly.
+    data.education = data.education.map(ed => ({
+      coursework: "", gpa: "", details: "",
+      ...ed,
+    }));
+    // Ensure projects always have a bullets array.
+    data.projects = data.projects.map(p => ({
+      ...p,
+      bullets: Array.isArray(p.bullets) ? p.bullets : (p.bullets ? [String(p.bullets)] : [""]),
+    }));
+
+    // New baseline CV → reset both stored versions and force back to original view.
+    versions.mode     = "original";
+    versions.original = cloneCV(data);
+    versions.tailored = null;
+    ats.highlights    = {};
+    ats.scoreTailored = null;
+    updateVersionToggleUI();
+
+    // Re-render every form section + preview
+    bindStaticInputs();
+    renderExperience();
+    renderProjects();
+    renderEducation();
+    renderSkills();
+    renderCerts();
+    refreshPreview();
+    updateActionButtons();
+    // Resume upload / JSON import = brand-new CV. Push it immediately so
+    // any tailoring/scoring against it hits fresh data on the very first
+    // operation, not after a 1-second debounce.
+    scheduleSync(0);
+  }
+
+  window.clearResume = () => {
+    document.getElementById("uploadedFileDisplay").style.display = "none";
+    document.getElementById("resumePreview").style.display = "none";
+    document.getElementById("resumeFileInput").value = "";
+  };
+
+  // =====================================================================
+  // ATS / TAILORING — UI glue
+  // =====================================================================
+
+  // Paint the topbar pill + expandable panel from a score object.
+  // Score shape: {score, matched, total, matched_terms[], missing_terms[]}
+  function applyScore(score) {
+    ats.score = score || null;
+    const pill   = document.getElementById("atsPill");
+    const numEl  = document.getElementById("atsNumText");
+    const bigEl  = document.getElementById("atsPanelScore");
+    const matEl  = document.getElementById("atsPanelMatched");
+    const totEl  = document.getElementById("atsPanelTotal");
+    const hintEl = document.getElementById("atsPanelHint");
+    const matRow = document.getElementById("atsMatchedChips");
+    const misRow = document.getElementById("atsMissingChips");
+
+    if (!score || !score.total) {
+      numEl.textContent  = "--%";
+      bigEl.textContent  = "--%";
+      matEl.textContent  = "0";
+      totEl.textContent  = "0";
+      hintEl.textContent = ats.keywords.length
+        ? "Add CV content to start scoring."
+        : "Save a job description to start scoring.";
+      pill.classList.remove("tier-low", "tier-mid", "tier-high");
+      matRow.innerHTML = `<div class="ats-empty">No matches yet.</div>`;
+      misRow.innerHTML = `<div class="ats-empty">${ats.keywords.length ? "" : "No keywords yet."}</div>`;
+      // Clear any stale highlights so they don't linger from a previous JD.
+      ats.highlights = {};
+      updateActionButtons();
+      return;
+    }
+
+    const pct = Math.round(score.score);
+    numEl.textContent = `${pct}%`;
+    bigEl.textContent = `${pct}%`;
+    matEl.textContent = String(score.matched);
+    totEl.textContent = String(score.total);
+    hintEl.textContent = pct >= 75
+      ? "Strong match — your CV covers most JD keywords."
+      : pct >= 50
+        ? "Decent match — consider tailoring or filling gaps."
+        : "Weak match — many JD keywords are missing.";
+
+    pill.classList.remove("tier-low", "tier-mid", "tier-high");
+    pill.classList.add(pct >= 75 ? "tier-high" : pct >= 50 ? "tier-mid" : "tier-low");
+
+    matRow.innerHTML = (score.matched_terms || []).length
+      ? score.matched_terms.map(t => chip(t, "matched")).join("")
+      : `<div class="ats-empty">No matches yet.</div>`;
+    misRow.innerHTML = (score.missing_terms || []).length
+      ? score.missing_terms.map(t => chip(t, "missing")).join("")
+      : `<div class="ats-empty">Nothing missing.</div>`;
+
+    // Derive yellow highlights from matched_terms — every place a matched
+    // JD keyword appears in the CV gets wrapped in <mark>. This runs on
+    // every score response, so highlights stay live with the score.
+    recomputeHighlightsFromMatches(score.matched_terms || []);
+
+    updateActionButtons();
+  }
+
+  // Build ats.highlights = { "<dotted path>": [[start,end], ...] } by
+  // scanning every CV field for every matched-term substring. Word-boundary
+  // matching, case-insensitive. Spans are merged + sorted (escWithHighlights
+  // requires that contract).
+  function recomputeHighlightsFromMatches(matchedTerms) {
+    const newHl = {};
+    if (!matchedTerms.length) {
+      ats.highlights = newHl;
+      return;
+    }
+    // Build one big alternation regex so each field is scanned once. Sort by
+    // length descending so "data pipelines" wins over "data" inside the same span.
+    const terms = matchedTerms
+      .map(t => (t.term || "").trim())
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length);
+    if (!terms.length) {
+      ats.highlights = newHl;
+      return;
+    }
+    const reSrc = "(?<![A-Za-z0-9])(" +
+                  terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") +
+                  ")(?![A-Za-z0-9])";
+    let regex;
+    try { regex = new RegExp(reSrc, "gi"); }
+    catch (_) { ats.highlights = newHl; return; }
+
+    const scan = (path, text) => {
+      if (!text) return;
+      const spans = [];
+      regex.lastIndex = 0;
+      let m;
+      while ((m = regex.exec(text)) !== null) {
+        spans.push([m.index, m.index + m[0].length]);
+      }
+      if (!spans.length) return;
+      // Merge overlapping/adjacent
+      spans.sort((a, b) => a[0] - b[0]);
+      const merged = [spans[0].slice()];
+      for (let i = 1; i < spans.length; i++) {
+        const last = merged[merged.length - 1];
+        if (spans[i][0] <= last[1]) last[1] = Math.max(last[1], spans[i][1]);
+        else merged.push(spans[i].slice());
+      }
+      newHl[path] = merged;
+    };
+
+    // Walk every field the renderer reads from.
+    if (data.summary) scan("summary", data.summary);
+    data.experience.forEach((e, i) => {
+      (e.bullets || []).forEach((b, j) => scan(`experience.${i}.bullets.${j}`, b));
+    });
+    data.projects.forEach((p, i) => {
+      scan(`projects.${i}.tech`, p.tech);
+      (p.bullets || []).forEach((b, j) => scan(`projects.${i}.bullets.${j}`, b));
+    });
+    data.skills.forEach((s, i) => {
+      scan(`skills.${i}.items`, s.items);
+    });
+
+    ats.highlights = newHl;
+  }
+
+  function chip(t, kind) {
+    const must = (t.importance === "must") ? " must" : "";
+    // Embed the term in an HTML attribute (escaped) and read it from the
+    // click handler. Avoids any quoting issues with terms like O'Reilly,
+    // C++, or .NET.
+    const termAttr = esc(t.term);
+    return (
+      `<span class="ats-chip ${kind}${must}" title="${esc(t.category || "")}: click × to remove from keyword list">` +
+        `${esc(t.term)}` +
+        `<button class="ats-chip-x" data-kw="${termAttr}" ` +
+          `onclick="event.stopPropagation(); removeKeyword(this.dataset.kw);" ` +
+          `aria-label="Remove keyword ${termAttr}" title="Remove from keyword list">×</button>` +
+      `</span>`
+    );
+  }
+
+  // Remove a keyword from the JD list. Used by the × button on every chip
+  // in the panel. Optimistic UI: drop locally first, then POST the new list
+  // to the backend and reconcile from the response (in case the backend
+  // normalized it). Score and highlights re-render once the response arrives.
+  window.removeKeyword = async (term) => {
+    if (!term) return;
+    const tlc = String(term).toLowerCase();
+    const before = ats.keywords.length;
+    ats.keywords = ats.keywords.filter(k => (k.term || "").toLowerCase() !== tlc);
+    if (ats.keywords.length === before) return;  // no-op (already gone)
+
+    // Repaint chips immediately from local state so the × responds instantly.
+    // We pass through whichever stored score is for the current view; the
+    // backend response will overwrite it shortly with fresh numbers.
+    const filterTerms = (arr) => (arr || []).filter(t => (t.term || "").toLowerCase() !== tlc);
+    if (ats.score) {
+      ats.score = {
+        ...ats.score,
+        matched_terms: filterTerms(ats.score.matched_terms),
+        missing_terms: filterTerms(ats.score.missing_terms),
+        total: ats.score.total - 1,
+        // Keep `matched` accurate in case we removed one from the matched list
+        matched: (ats.score.matched_terms || []).some(t => (t.term || "").toLowerCase() === tlc)
+                 ? ats.score.matched - 1 : ats.score.matched,
+      };
+      // Recompute % from the new matched/total
+      ats.score.score = ats.score.total > 0
+        ? Math.round((ats.score.matched / ats.score.total) * 100)
+        : 0;
+      applyScore(ats.score);
+    }
+
+    // Persist to backend. Send the tailored CV alongside so it can score both.
+    try {
+      const r = await fetch(`${API_BASE}/api/jd-keywords`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: SESSION_ID,
+          keywords: ats.keywords,
+          tailored_data: versions.tailored || null,
+        }),
+      });
+      if (!r.ok) {
+        // Roll back the optimistic update if the backend rejected.
+        showToast(`Couldn't update keyword list (${r.status})`, "error");
+        return;
+      }
+      const j = await r.json();
+      ats.keywords      = j.keywords       || [];
+      ats.scoreOriginal = j.score_original || null;
+      ats.scoreTailored = j.score_tailored || null;
+      // Repaint the panel with the score for the active view.
+      const activeScore = (versions.mode === "tailored")
+        ? ats.scoreTailored : ats.scoreOriginal;
+      if (activeScore) applyScore(activeScore);
+      updateVersionToggleUI();
+      updateActionButtons();
+      // applyScore() recomputed highlights — repaginate so the preview reflects them.
+      if (typeof paginate === "function") paginate();
+    } catch (e) {
+      showToast(`Network error removing keyword: ${e.message}`, "error");
+    }
+  };
+
+  function updateActionButtons() {
+    const buildBtn = document.getElementById("buildBtn");
+    const label    = document.getElementById("buildBtnLabel");
+    const haveKeywords = ats.keywords.length > 0;
+    const haveContent = !!(data && (data.experience?.length || data.projects?.length || data.skills?.length));
+    buildBtn.disabled = !(haveKeywords && haveContent);
+    // Re-build is allowed when a tailored version already exists.
+    label.textContent = versions.tailored ? "Rebuild ATS Version" : "Build ATS Version";
+  }
+
+  // Show/hide the Original/ATS toggle and update its state.
+  function updateVersionToggleUI() {
+    const toggle = document.getElementById("versionToggle");
+    const orig   = document.getElementById("vtOriginal");
+    const tail   = document.getElementById("vtTailored");
+    const versus = document.getElementById("atsVersus");
+
+    const haveTailored = !!versions.tailored;
+    toggle.hidden = !haveTailored;   // toggle only appears when there are 2 versions
+    versus.hidden = !haveTailored;
+
+    orig.classList.toggle("active", versions.mode === "original");
+    tail.classList.toggle("active", versions.mode === "tailored");
+    tail.disabled = !haveTailored;
+
+    if (haveTailored) {
+      const oNum = ats.scoreOriginal ? `${Math.round(ats.scoreOriginal.score)}%` : "--%";
+      const tNum = ats.scoreTailored ? `${Math.round(ats.scoreTailored.score)}%` : "--%";
+      document.getElementById("vsOriginalNum").textContent = oNum;
+      document.getElementById("vsTailoredNum").textContent = tNum;
+      // Color the tailored side green if it improved over the original.
+      const oSide = document.getElementById("vsOriginal");
+      const tSide = document.getElementById("vsTailored");
+      oSide.classList.remove("improved", "regressed");
+      tSide.classList.remove("improved", "regressed");
+      if (ats.scoreOriginal && ats.scoreTailored) {
+        const delta = ats.scoreTailored.score - ats.scoreOriginal.score;
+        if (delta > 0) tSide.classList.add("improved");
+        else if (delta < 0) tSide.classList.add("regressed");
+      }
+    }
+  }
+
+  // Switch the displayed CV. Persists the current edits into the active
+  // version first, then loads the requested version into `data`.
+  window.setView = (mode) => {
+    if (mode === versions.mode) return;
+    if (!versions[mode]) {
+      showToast(`No ${mode === "tailored" ? "ATS-tailored" : "original"} CV available`, "info");
+      return;
+    }
+    // Save what's currently on screen before switching.
+    persistCurrentVersion();
+    loadVersion(mode);
+
+    // Re-render every form section + preview against the freshly-loaded CV.
+    bindStaticInputs();
+    renderExperience();
+    renderProjects();
+    renderEducation();
+    renderSkills();
+    renderCerts();
+
+    // Swap the displayed score to match the active view.
+    const target = mode === "tailored" ? ats.scoreTailored : ats.scoreOriginal;
+    if (target) applyScore(target);
+    updateVersionToggleUI();
+    refreshPreview();
+    showToast(mode === "tailored" ? "Showing ATS-tailored CV" : "Showing original CV", "info");
+  };
+
+  // Toggle the expandable panel. Outside-clicks close it.
+  document.getElementById("atsPill").addEventListener("click", (e) => {
+    // Don't toggle when the click is inside the panel itself (button presses, chips)
+    if (e.target.closest(".ats-panel")) return;
+    ats.panelOpen = !ats.panelOpen;
+    document.getElementById("atsPanel").hidden = !ats.panelOpen;
+    e.stopPropagation();
+  });
+  document.addEventListener("click", (e) => {
+    if (!ats.panelOpen) return;
+    if (e.target.closest("#atsPill")) return;
+    ats.panelOpen = false;
+    document.getElementById("atsPanel").hidden = true;
+  });
+
+  // ---- Live scoring (debounced; fires on every CV edit) ---------------
+  // Score whichever version is currently active. After the response we also
+  // update `ats.scoreOriginal` or `ats.scoreTailored` so the versus row stays
+  // in sync as the user edits each version.
+  let scoreTimer = null;
+  function refreshScore() {
+    if (!ats.keywords.length) return;
+    if (scoreTimer) clearTimeout(scoreTimer);
+    scoreTimer = setTimeout(async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/score`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: SESSION_ID, data }),
+        });
+        if (!r.ok) return;
+        const j = await r.json();
+        applyScore(j);
+        // Also update the per-version score for the versus row.
+        if (versions.mode === "tailored") ats.scoreTailored = j;
+        else                                ats.scoreOriginal = j;
+        updateVersionToggleUI();
+        // applyScore() recomputed ats.highlights from the matched terms;
+        // re-render the preview so <mark> wrappers reflect the latest CV.
+        if (typeof paginate === "function") paginate();
+      } catch (_) { /* network blip — ignore */ }
+    }, 350);
+  }
+
+  // ---- Build ATS-tailored CV -----------------------------------------
+  // Calls the backend, stores the returned tailored CV under versions.tailored,
+  // and (by default) switches the view to it so the user sees the result.
+  window.buildTailoredCV = async () => {
+    const btn = document.getElementById("buildBtn");
+    if (!ats.keywords.length) {
+      showToast("Save a job description first", "info");
+      return;
+    }
+    btn.disabled = true;
+    showToast("Building ATS-tailored CV with Gemini…", "info");
+    try {
+      // Make sure we're operating on the latest "original" before the build.
+      // If we're currently viewing the tailored version, switch back first.
+      if (versions.mode === "tailored") {
+        persistCurrentVersion();
+        loadVersion("original");
+        // No re-render needed — we're about to replace data again.
+      }
+      // Drain any pending auto-sync so /api/build-tailored-cv reads the
+      // freshest possible CV from the session.
+      await flushPendingSync();
+      const r = await fetch(`${API_BASE}/api/build-tailored-cv`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: SESSION_ID }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.detail || r.statusText);
+
+      // Store tailored CV alongside the original. Don't disturb versions.original.
+      versions.tailored    = cloneCV(j.tailored_cv);
+      ats.scoreOriginal    = j.score_original || null;
+      ats.scoreTailored    = j.score_tailored || null;
+
+      // Switch the view to the tailored version so the user sees it.
+      loadVersion("tailored");
+      bindStaticInputs();
+      renderExperience();
+      renderProjects();
+      renderEducation();
+      renderSkills();
+      renderCerts();
+      applyScore(ats.scoreTailored);
+      updateVersionToggleUI();
+      refreshPreview();
+
+      showToast(`ATS version built · ${j.edits_applied} edit${j.edits_applied === 1 ? "" : "s"} applied`, "success");
+    } catch (e) {
+      showToast(`Build failed: ${e.message}`, "error");
+    } finally {
+      updateActionButtons();
+    }
+  };
+
+  // =====================================================================
+  // Existing handlers
+  // =====================================================================
+
+  window.saveJobDescription = async () => {
+    const text = document.getElementById("jdTextarea").value;
+    const btn = document.getElementById("saveJDBtn");
+    btn.disabled = true;
+    showToast("Saving JD & extracting keywords…", "info");
+    try {
+      // Drain pending auto-sync so the initial score is computed against
+      // the user's latest edits, not a stale session CV.
+      await flushPendingSync();
+      const r = await fetch(`${API_BASE}/api/job-description`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: SESSION_ID, text }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.detail || r.statusText);
+
+      ats.keywords = j.keywords || [];
+      applyScore(j.score);
+
+      if (j.extract_error) {
+        showToast(`JD saved, but keyword extraction failed: ${j.extract_error}`, "error");
+      } else if (!j.gemini_available) {
+        showToast(`JD saved (${j.char_count.toLocaleString()} chars). Set GEMINI_API_KEY for keyword extraction.`, "info");
+      } else {
+        showToast(`JD saved · ${j.keyword_count} keywords extracted`, "success");
+      }
+    } catch (e) {
+      showToast(`Save failed: ${e.message}`, "error");
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  // =====================================================================
+  // Auto-sync to backend (strategy C — sync at meaningful moments)
+  // =====================================================================
+  // The backend doesn't need the CV between edits — score requests already
+  // pass the CV in the body. The only things that genuinely need a fresh
+  // server-side copy are operations that read it from the session:
+  //   - /api/build-tailored-cv (Gemini reads sess.cv_data)
+  //   - the /api/cv-data GET endpoint (used by JSON import workflow)
+  //
+  // So we sync:
+  //   1. Immediately after applyCVData() (resume upload / JSON import)
+  //   2. Debounced 1000ms after every edit (best-effort freshness)
+  //   3. Explicitly via flushPendingSync() before any server-side read
+  //
+  // The status pill in the editor reflects the current state.
+
+  let syncTimer = null;        // pending debounce
+  let syncInFlight = null;     // current POST promise (null when idle)
+  let syncDirty = false;       // an edit landed while a POST was in flight
+  let lastSyncSnapshot = null; // serialized CV that was last successfully sent
+
+  function setSyncStatus(state, label) {
+    const el = document.getElementById("syncStatus");
+    const tx = document.getElementById("syncStatusText");
+    if (!el) return;
+    el.dataset.state = state;
+    if (label) tx.textContent = label;
+    // Icon swap so the visual shape matches the meaning.
+    const iconEl = el.querySelector("i");
+    if (iconEl) {
+      iconEl.className = (
+        state === "saving"  ? "bi bi-arrow-repeat" :
+        state === "error"   ? "bi bi-exclamation-circle" :
+        state === "offline" ? "bi bi-cloud-slash" :
+                              "bi bi-cloud-check"
+      );
+    }
+  }
+
+  // Actually push the current `data` to the backend. Returns a promise
+  // that resolves when the round-trip completes (success or fail).
+  async function pushCVToBackend() {
+    const payload = JSON.stringify({ session_id: SESSION_ID, data });
+    // Skip the round-trip if the CV hasn't changed since the last successful send.
+    if (payload === lastSyncSnapshot) {
+      setSyncStatus("idle", "Synced");
+      return;
+    }
+    setSyncStatus("saving", "Saving…");
+    try {
+      const r = await fetch(`${API_BASE}/api/cv-data`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j.detail || r.statusText || `HTTP ${r.status}`);
+      }
+      lastSyncSnapshot = payload;
+      setSyncStatus("idle", "Synced");
+    } catch (e) {
+      // Backend offline is the expected/common case during local dev — show
+      // a softer status for it. Anything else is a real error.
+      const offline = /Failed to fetch|NetworkError|TypeError/.test(String(e));
+      setSyncStatus(offline ? "offline" : "error",
+                    offline ? "Backend offline" : "Save failed");
+    }
+  }
+
+  // Schedule a debounced sync after a CV edit. Coalesces multiple edits
+  // within `quietMs` into a single network request.
+  function scheduleSync(quietMs = 1000) {
+    if (syncTimer) clearTimeout(syncTimer);
+    // Show "Saving…" early so the user knows their edit registered, even
+    // before the network call goes out.
+    setSyncStatus("saving", "Saving…");
+    syncTimer = setTimeout(async () => {
+      syncTimer = null;
+      // If a sync is already in-flight, mark dirty and let the in-flight
+      // resolution kick off another. (Avoids parallel writes.)
+      if (syncInFlight) { syncDirty = true; return; }
+      syncInFlight = pushCVToBackend().finally(() => {
+        syncInFlight = null;
+        if (syncDirty) { syncDirty = false; scheduleSync(0); }
+      });
+    }, quietMs);
+  }
+
+  // Drain any pending debounced sync NOW. Used before operations that
+  // need a guaranteed-fresh server-side CV (e.g. /api/build-tailored-cv).
+  async function flushPendingSync() {
+    if (syncTimer) {
+      clearTimeout(syncTimer);
+      syncTimer = null;
+    }
+    if (syncInFlight) await syncInFlight;
+    await pushCVToBackend();
+  }
+
+  window.exportJSON = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const slug = (data.personal.name || "cv").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    a.href = url;
+    a.download = `${slug}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast("JSON exported", "success");
+  };
+
+  function importJSON(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const imported = JSON.parse(e.target.result);
+        applyCVData(imported);
+        showToast("CV data imported", "success");
+      } catch (err) {
+        showToast(`Import failed: ${err.message}`, "error");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // Drag & drop on the upload zone
+  const uploadZone = document.getElementById("uploadZone");
+  const fileInput  = document.getElementById("resumeFileInput");
+  uploadZone.addEventListener("dragover",  (e) => { e.preventDefault(); uploadZone.classList.add("dragover"); });
+  uploadZone.addEventListener("dragleave", ()  => uploadZone.classList.remove("dragover"));
+  uploadZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove("dragover");
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) uploadResume(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener("change", (e) => {
+    if (e.target.files[0]) uploadResume(e.target.files[0]);
+  });
+
+  // JD char counter
+  const jdTextarea = document.getElementById("jdTextarea");
+  const jdCounter  = document.getElementById("jdCharCounter");
+  jdTextarea.addEventListener("input", () => {
+    jdCounter.textContent = `${jdTextarea.value.length.toLocaleString()} characters`;
+  });
+
+  // JSON import handler
+  document.getElementById("jsonImportInput").addEventListener("change", (e) => {
+    if (e.target.files[0]) importJSON(e.target.files[0]);
+    e.target.value = "";
+  });
+
+  // Initial backend health check + periodic refresh
+  checkBackendHealth();
+  setInterval(checkBackendHealth, 15000);
+
+  // Initial render of the ATS pill in its idle "--%" state.
+  applyScore(null);
+  updateActionButtons();
+
+  // Seed the original version with the initial form state so the toggle
+  // and "edits flow to current view" logic have something to persist to.
+  persistCurrentVersion();
+  updateVersionToggleUI();
+</script>
+</body>
+</html>
