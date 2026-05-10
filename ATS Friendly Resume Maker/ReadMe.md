@@ -27,6 +27,7 @@ using your own **free gemini** api key !
 <br><br>
 ## Demo
 
+![Demo GIF](ATS_CVmaker.gif)
 
 
 <br><br>
