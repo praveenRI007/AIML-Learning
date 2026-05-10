@@ -28,7 +28,6 @@ using your own **free gemini** api key !
 ## Demo
 
 
-*(GIF placeholder)*
 
 <br><br>
 ## How it works
